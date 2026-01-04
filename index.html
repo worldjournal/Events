@@ -1,94 +1,74 @@
----
----
-
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Photo Wall</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Events</title>
+<style>
+body{margin:0;padding:14px;font-family:system-ui,-apple-system,"Noto Sans TC","Microsoft JhengHei",sans-serif}
 
-  <style>
-    body{
-      margin:0;
-      background:#000;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont;
-    }
+/* 照片牆：只顯示約 2/3，高度以下不露出 */
+.g{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:10px;
+  max-height:66vh;
+  overflow:hidden;
+}
+.g img{
+  width:100%;
+  height:auto;
+  display:block;
+  background:#eee;
+  cursor:zoom-in;
+}
+@media(max-width:900px){.g{grid-template-columns:repeat(2,1fr)}}
 
-    .gallery{
-      display:grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap:10px;
-      padding:12px;
-      max-width:1200px;
-      margin:auto;
-    }
-
-    .gallery img{
-      width:100%;
-      height:100%;
-      object-fit:cover;
-      cursor:pointer;
-      display:block;
-    }
-
-    @media (max-width:900px){
-      .gallery{ grid-template-columns:repeat(3,1fr); }
-    }
-    @media (max-width:600px){
-      .gallery{ grid-template-columns:repeat(2,1fr); }
-    }
-
-    /* 簡單燈箱 */
-    .lightbox{
-      position:fixed;
-      inset:0;
-      background:rgba(0,0,0,.85);
-      display:none;
-      align-items:center;
-      justify-content:center;
-      z-index:999;
-    }
-    .lightbox img{
-      max-width:90vw;
-      max-height:90vh;
-    }
-  </style>
+/* 燈箱 */
+.lb{
+  position:fixed;
+  inset:0;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  background:rgba(0,0,0,.86);
+  z-index:9999;
+}
+.lb.on{display:flex}
+.lb img{
+  max-width:96vw;
+  max-height:96vh;
+  object-fit:contain;
+  background:#111;
+}
+</style>
 </head>
-
 <body>
 
-<div class="gallery">
-  {% assign files = site.static_files
-     | where_exp:"f","f.path contains '/img/'"
-     | sort: "name" %}
-
-  {% for f in files %}
-    {% if f.extname == '.jpg' or f.extname == '.png' or f.extname == '.jpeg' or f.extname == '.webp' %}
-      <img src="{{ f.path | relative_url }}" alt="">
-    {% endif %}
-  {% endfor %}
+<!-- 這裡放你「原本就會顯示」的照片牆（不要動） -->
+<div class="g">
+  <!-- 你原本的 <img src="img/xxx.jpg"> 全部留著 -->
 </div>
 
-<div class="lightbox" id="lightbox">
-  <img id="lightboxImg">
-</div>
+<!-- 燈箱 -->
+<div id="lb" class="lb"><img id="big" alt=""></div>
 
 <script>
-  const lb = document.getElementById('lightbox');
-  const lbImg = document.getElementById('lightboxImg');
+const lb=document.getElementById('lb');
+const big=document.getElementById('big');
 
-  document.querySelectorAll('.gallery img').forEach(img=>{
-    img.onclick = ()=>{
-      lbImg.src = img.src;
-      lb.style.display='flex';
-    }
-  });
-
-  lb.onclick = ()=>{
-    lb.style.display='none';
-    lbImg.src='';
+/* 只對已存在的圖片加放大 */
+document.querySelectorAll('.g img').forEach(img=>{
+  img.onclick=()=>{
+    big.src=img.src;
+    lb.classList.add('on');
   };
+});
+
+lb.onclick=()=>lb.classList.remove('on');
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape') lb.classList.remove('on');
+});
 </script>
 
 </body>
