@@ -4,39 +4,72 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Events</title>
+
 <style>
 body{margin:0;background:#fff}
-.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;padding:16px}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:16px;
+  padding:16px;
+}
 @media(max-width:1100px){.grid{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:780px){.grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:480px){.grid{grid-template-columns:1fr}}
 
-.card{background:#fff;padding:14px;border-radius:12px;box-sizing:border-box;cursor:zoom-in;border:1px solid #eee}
-
-/* 牆上固定高度：只改數字 */
-.frame{
-  height:900px;              /* ← 只改這個數字 */
-  width:100%;
+.card{
   background:#fff;
+  padding:12px;
+  border-radius:10px;
+  border:1px solid #eee;
+  box-sizing:border-box;
+  cursor:zoom-in;
 }
 
-/* 關鍵：左右不裁、上方不裁（整張縮放放進框內） */
+/* 關鍵：不固定高度，只給「小一點的上限」 */
+.frame{
+  width:100%;
+  max-height:600px;   /* ← 牆上就是這個高度，不會再很長 */
+}
+
 .thumb{
   width:100%;
-  height:100%;
+  height:auto;        /* 整張圖等比縮小 */
   display:block;
-  object-fit:contain;        /* 不裁任何邊 */
-  object-position:top center;/* 靠上對齊 */
-  background:#fff;
 }
 
-/* 燈箱：整張顯示 */
-.lb{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.85);z-index:999999}
+/* 燈箱 */
+.lb{
+  position:fixed;
+  inset:0;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  background:rgba(0,0,0,.85);
+  z-index:999999;
+}
 .lb.on{display:flex}
-.lb img{max-width:96vw;max-height:92vh;object-fit:contain}
-.close{position:fixed;top:12px;right:12px;width:40px;height:40px;border:0;border-radius:999px;background:rgba(255,255,255,.2);color:#fff;font-size:22px}
+.lb img{
+  max-width:96vw;
+  max-height:92vh;
+  object-fit:contain;
+}
+.close{
+  position:fixed;
+  top:12px;
+  right:12px;
+  width:40px;
+  height:40px;
+  border:0;
+  border-radius:999px;
+  background:rgba(255,255,255,.2);
+  color:#fff;
+  font-size:22px;
+}
 </style>
 </head>
+
 <body>
 
 <div class="grid" id="g"></div>
@@ -51,18 +84,25 @@ body{margin:0;background:#fff}
   const OWNER="worldjournal", REPO="Events", FOLDER="img";
   const ext=/\.(jpe?g|png|webp|gif|bmp|svg)$/i;
 
-  const g=document.getElementById("g"), lb=document.getElementById("lb"),
-        big=document.getElementById("big"), x=document.getElementById("x");
+  const g=document.getElementById("g");
+  const lb=document.getElementById("lb");
+  const big=document.getElementById("big");
+  const x=document.getElementById("x");
 
   const repo=await fetch(`https://api.github.com/repos/${OWNER}/${REPO}`).then(r=>r.json());
   const branch=repo.default_branch;
 
-  const items=await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${FOLDER}?ref=${branch}`).then(r=>r.json());
-  const urls=items.filter(i=>i.type==="file"&&ext.test(i.name)).map(i=>i.download_url);
+  const items=await fetch(
+    `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FOLDER}?ref=${branch}`
+  ).then(r=>r.json());
+
+  const urls=items.filter(i=>i.type==="file" && ext.test(i.name)).map(i=>i.download_url);
 
   g.innerHTML=urls.map((u,i)=>`
     <div class="card" data-i="${i}">
-      <div class="frame"><img class="thumb" loading="lazy" src="${u}"></div>
+      <div class="frame">
+        <img class="thumb" loading="lazy" src="${u}">
+      </div>
     </div>
   `).join("");
 
