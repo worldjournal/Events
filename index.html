@@ -12,13 +12,13 @@ body{
   font-family:system-ui,-apple-system,"Noto Sans TC","Microsoft JhengHei",sans-serif;
 }
 
-/* 照片牆：高度 2/3，牆內捲動 */
+/* 照片牆：高度縮短（約 1/2 螢幕），牆內捲動 */
 .gallery{
   display:grid;
   grid-template-columns:repeat(4,1fr);
   gap:10px;
-  height:66vh;          /* 關鍵：2/3 高度 */
-  overflow:auto;        /* 關鍵：不要 hidden */
+  height:50vh;          /* ← 關鍵：再縮短 */
+  overflow:auto;        /* 牆內捲動 */
 }
 .gallery img{
   width:100%;
@@ -54,9 +54,9 @@ body{
 
 <body>
 
-<!-- 你的原本照片牆 -->
+<!-- 照片牆（你原本能顯示的圖片都在這裡） -->
 <div class="gallery" id="gallery">
-  <!-- 你原本能顯示的 <img> 都放在這裡 -->
+  <!-- 原本的 <img> 內容不動 -->
 </div>
 
 <!-- 燈箱 -->
@@ -65,7 +65,7 @@ body{
 </div>
 
 <script>
-/* 燈箱只做一件事：放大 */
+/* 燈箱功能：只負責放大，不碰載圖 */
 const lb = document.getElementById("lightbox");
 const lbImg = document.getElementById("lightboxImg");
 
