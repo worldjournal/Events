@@ -6,23 +6,30 @@
 <title>Events</title>
 <style>
 :root{
-  --h: 900px;     /* 牆上縮圖高度：只改數字 */
-  --crop: 25%;    /* 固定看上方 3/4：裁掉下方 1/4 */
-  --pad: 8px;     /* 四方留白：只改數字 */
+  --h: 900px;   /* 縮圖高度：只改數字 */
+  --crop: 25%;  /* 固定看上方 3/4：裁下方 1/4 */
+  --gap: 12px;  /* 每張之間的留白 */
+  --pad: 14px;  /* 每張四邊留白 */
 }
 body{margin:0;background:#fff}
-.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:8px}
+.grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:var(--gap);
+  padding:var(--gap);
+  background:#fff;
+}
 @media(max-width:1100px){.grid{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:780px){.grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:480px){.grid{grid-template-columns:1fr}}
 
 .card{
   background:#fff;
-  border-radius:10px;
-  padding:var(--pad);     /* 四方留白 */
+  padding:var(--pad);            /* 四邊留白 */
+  border-radius:12px;
+  border:1px solid #eee;         /* 讓留白看得出來 */
   box-sizing:border-box;
   cursor:zoom-in;
-  overflow:hidden;
 }
 
 .thumb{
@@ -30,13 +37,13 @@ body{margin:0;background:#fff}
   height:var(--h);
   display:block;
   object-fit:cover;
-  object-position:top;               /* 上方不切 */
-  clip-path:inset(0 0 var(--crop) 0);/* 只裁下方 1/4 */
-  border-radius:8px;
+  object-position:top;
+  clip-path:inset(0 0 var(--crop) 0);
+  border-radius:10px;
   background:#fff;
 }
 
-/* Lightbox：顯示整張 */
+/* Lightbox：整張 */
 .lb{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.85);z-index:999999}
 .lb.on{display:flex}
 .lb img{max-width:96vw;max-height:92vh;object-fit:contain}
