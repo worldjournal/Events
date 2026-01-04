@@ -4,10 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Events</title>
+
 <style>
 body{margin:0;background:#fff}
 
-/* 列與列不要大空白 */
+/* 照片牆排列 */
 .grid{
   display:grid;
   grid-template-columns:repeat(4,1fr);
@@ -18,20 +19,22 @@ body{margin:0;background:#fff}
 @media(max-width:780px){.grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:480px){.grid{grid-template-columns:1fr}}
 
-.card{overflow:hidden;border-radius:8px;cursor:zoom-in}
+.card{
+  overflow:hidden;
+  border-radius:8px;
+  cursor:zoom-in;
+}
 
-/* 關鍵：高度放到 3/4 */
+/* 關鍵：只「縮短顯示高度」，不裁切、不置中，用 px */
 .thumb{
   width:100%;
-  height:75vh;          /* 3/4 畫面高度 */
-  max-height:600px;
-  min-height:360px;
+  height:900px;        /* ← 只改這個數字即可 */
   object-fit:cover;
   object-position:top;
   display:block;
 }
 
-/* Lightbox：整張顯示 */
+/* 燈箱：顯示整張照片 */
 .lb{
   position:fixed;
   inset:0;
@@ -39,13 +42,13 @@ body{margin:0;background:#fff}
   align-items:center;
   justify-content:center;
   background:rgba(0,0,0,.85);
-  z-index:999999
+  z-index:999999;
 }
 .lb.on{display:flex}
 .lb img{
   max-width:96vw;
   max-height:92vh;
-  object-fit:contain
+  object-fit:contain;
 }
 .close{
   position:fixed;
@@ -57,10 +60,11 @@ body{margin:0;background:#fff}
   border-radius:999px;
   background:rgba(255,255,255,.2);
   color:#fff;
-  font-size:22px
+  font-size:22px;
 }
 </style>
 </head>
+
 <body>
 
 <div class="grid" id="g"></div>
@@ -72,24 +76,43 @@ body{margin:0;background:#fff}
 
 <script>
 (async()=>{
-const o="worldjournal",r="Events",f="img",ext=/\.(jpe?g|png|webp|gif|bmp|svg)$/i;
-const g=document.getElementById("g"),lb=document.getElementById("lb"),big=document.getElementById("big"),x=document.getElementById("x");
+  const OWNER="worldjournal", REPO="Events", FOLDER="img";
+  const ext=/\.(jpe?g|png|webp|gif|bmp|svg)$/i;
 
-const repo=await fetch(`https://api.github.com/repos/${o}/${r}`).then(r=>r.json());
-const b=repo.default_branch;
-const items=await fetch(`https://api.github.com/repos/${o}/${r}/contents/${f}?ref=${b}`).then(r=>r.json());
-const urls=items.filter(i=>i.type==="file"&&ext.test(i.name)).map(i=>i.download_url);
+  const g=document.getElementById("g");
+  const lb=document.getElementById("lb");
+  const big=document.getElementById("big");
+  const x=document.getElementById("x");
 
-g.innerHTML=urls.map((u,i)=>`<div class="card" data-i="${i}"><img class="thumb" loading="lazy" src="${u}"></div>`).join("");
-g.onclick=e=>{
-  const c=e.target.closest(".card");
-  if(!c)return;
-  big.src=urls[c.dataset.i];
-  lb.classList.add("on");
-};
-x.onclick=()=>lb.classList.remove("on");
-lb.onclick=e=>e.target===lb&&lb.classList.remove("on");
+  const repo=await fetch(`https://api.github.com/repos/${OWNER}/${REPO}`).then(r=>r.json());
+  const branch=repo.default_branch;
+
+  const items=await fetch(
+    `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FOLDER}?ref=${branch}`
+  ).then(r=>r.json());
+
+  const urls=items
+    .filter(i=>i.type==="file" && ext.test(i.name))
+    .map(i=>i.download_url);
+
+  g.innerHTML=urls.map((u,i)=>`
+    <div class="card" data-i="${i}">
+      <img class="thumb" loading="lazy" src="${u}">
+    </div>
+  `).join("");
+
+  g.onclick=e=>{
+    const c=e.target.closest(".card");
+    if(!c)return;
+    big.src=urls[c.dataset.i];
+    lb.classList.add("on");
+  };
+
+  x.onclick=()=>lb.classList.remove("on");
+  lb.onclick=e=>e.target===lb && lb.classList.remove("on");
 })();
 </script>
+
 </body>
 </html>
+
