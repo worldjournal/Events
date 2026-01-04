@@ -2,114 +2,51 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Events Photo Wall</title>
+  <title>Events</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <style>
     body {
       margin: 0;
-      padding: 20px;
-      font-family: system-ui, -apple-system, "Noto Sans TC", sans-serif;
+      padding: 16px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+                   "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
       background: #fff;
     }
+
     .gallery {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
       gap: 12px;
     }
+
     .gallery img {
       width: 100%;
       height: auto;
       display: block;
-      object-fit: cover;
-      background: #f0f0f0;
-    }
-    @media (max-width: 900px) {
-      .gallery {
-        grid-template-columns: repeat(2, 1fr);
-      }
+      background: #f2f2f2;
     }
   </style>
 </head>
 
 <body>
-  <div id="gallery" class="gallery"></div>
+
+  <div class="gallery" id="gallery"></div>
 
   <script>
-    // 已依年代（舊 → 新）排序
-    const images = [
-      // 1970s
-      "19760910.jpg",
-      "19770121.jpg",
-      "19770818.jpg",
-      "19790101.jpg",
-      "19790212.jpg",
-      "19791212.jpg",
+    /*
+      GitHub Pages 無法直接列目錄，
+      所以這裡用「已知存在即可顯示」的方式：
+      只要圖片網址存在就會顯示，不存在就略過
+    */
 
-      // 1980s
-      "19800321.jpg",
-      "19801106.jpg",
-      "19891110.jpg",
-
-      // 1990s
-      "19910117.jpg",
-      "19910501.jpg",
-      "19911226.jpg",
-      "19921204.jpg",
-      "19921219.jpg",
-      "19950609.jpg",
-      "19960323.jpg",
-      "19970701.jpg",
-      "19990324.jpg",
-
-      // 2000s
-      "20000318.jpg",
-      "20001108.jpg",
-      "20010912.jpg",
-      "20011018.jpg",
-      "20011211.jpg",
-
-      // 2010s
-      "20110212.jpg",
-      "20151213.jpg",
-      "20151213-2.jpg",
-      "20151213-3.jpg",
-      "20160221.jpg",
-      "20160221A01.jpg",
-      "20161109.jpg",
-      "20161110.jpg",
-      "20170802.jpg",
-      "20171114.jpg",
-      "20180301.jpg",
-      "20190715.jpg",
-
-      // 2020s
-      "20221028.jpg",
-
-      // 非日期（原樣列出）
-      "以哈開戰.jpg",
-      "何處是老家.jpg",
-      "走線客.jpg",
-      "俄烏戰爭.jpg",
-      "拜登投書華報.jpg",
-      "疫情改變你和我1.jpg",
-      "疫情改變你和我2.jpg",
-      "疫情改變你和我3.jpg",
-      "紐約旅行.jpg",
-      "董陽孜大都會展.jpg",
-      "對等關稅.jpg",
-      "劉文正.jpg"
+    const years = [
+      "1976","1977","1978","1979","1980","1989","1991","1992","1995","1996",
+      "1997","1999","2000","2001","2011","2015","2016","2017","2018","2019","2022"
     ];
 
     const gallery = document.getElementById("gallery");
 
-    images.forEach(name => {
-      const img = document.createElement("img");
-      img.src = `img/${name}`;   // 相對路徑，適用 /Events/
-      img.loading = "lazy";
-      img.alt = "";
-      gallery.appendChild(img);
-    });
-  </script>
-</body>
-</html>
+    years.forEach(year => {
+      for (let m = 1; m <= 12; m++) {
+        for (let d = 1;
