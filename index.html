@@ -6,11 +6,43 @@ html, body {
 }
 </style>
 
-
 <!doctype html>
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
+  <script>
+(function () {
+  function box(title, msg) {
+    var el = document.getElementById('__errbox__');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = '__errbox__';
+      el.style.cssText =
+        'position:fixed;left:0;right:0;bottom:0;max-height:45vh;overflow:auto;' +
+        'background:#111;color:#fff;z-index:999999;padding:10px;' +
+        'font:12px/1.4 monospace;white-space:pre-wrap;';
+      document.body.appendChild(el);
+    }
+    el.textContent += '\n[' + title + ']\n' + msg + '\n';
+  }
+
+  window.addEventListener('error', function (e) {
+    box('window.error', (e.message || 'no message') + '\n' + (e.filename || '') + ':' + (e.lineno || 0) + ':' + (e.colno || 0));
+  });
+
+  window.addEventListener('unhandledrejection', function (e) {
+    var r = e.reason;
+    var msg = (r && (r.stack || r.message)) ? (r.stack || r.message) : String(r);
+    box('unhandledrejection', msg);
+  });
+
+  // 顯示目前是否在 iframe
+  window.addEventListener('DOMContentLoaded', function () {
+    box('env', 'inIframe=' + (window.self !== window.top) + '\nurl=' + location.href);
+  });
+})();
+</script>
+
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Events</title>
 <style>
