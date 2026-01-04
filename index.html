@@ -1,99 +1,151 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Events</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Photo Wall</title>
+  <style>
+    :root{
+      --page-bg:#0b0b0c;
+      --gap:10px;
+      --radius:10px;
+      --wall-height:66vh; /* 約 2/3 視窗高度 */
+    }
+    *{box-sizing:border-box}
+    html, body{height:100%}
+    body{
+      margin:0;
+      background:var(--page-bg);
+      color:#fff;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", Arial, sans-serif;
+      overflow:hidden; /* 不讓頁面往下滾 */
+    }
 
-<style>
-body{
-  margin:0;
-  padding:14px;
-  font-family:system-ui,-apple-system,"Noto Sans TC","Microsoft JhengHei",sans-serif;
-}
+    /* 盡量把佈景/外掛塞的底部區塊隱藏掉 */
+    footer, .footer, #footer,
+    .ads, .ad, .advert, .advertisement, #ads, #ad, #advert, #advertisement,
+    .site-footer, .page-footer, .bottom-ad, .ad-container, .ads-container {
+      display:none !important;
+      height:0 !important;
+      overflow:hidden !important;
+    }
 
-/* 照片牆：高度縮短（約 50%），牆內捲動 */
-.gallery{
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:10px;
-  height:50vh;          /* ← 你要的「再短一點」 */
-  overflow:auto;        /* 牆內捲動，不露下方 */
-  align-content:start;
-}
-.gallery img{
-  width:100%;
-  height:auto;
-  display:block;
-  cursor:zoom-in;
-  background:#eee;
-}
-@media(max-width:900px){
-  .gallery{grid-template-columns:repeat(2,1fr);}
-}
+    .wrap{
+      height:100vh;
+      padding:14px;
+      display:flex;
+      align-items:flex-start;
+      justify-content:center;
+    }
 
-/* 燈箱 */
-.lightbox{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.85);
-  display:none;
-  align-items:center;
-  justify-content:center;
-  z-index:9999;
-}
-.lightbox.on{display:flex}
-.lightbox img{
-  max-width:96vw;
-  max-height:96vh;
-  object-fit:contain;
-  background:#111;
-}
-</style>
+    .wall{
+      width:min(1100px, 100%);
+      height:var(--wall-height);
+      overflow:hidden; /* 固定高度，不露下方 */
+      border-radius:14px;
+    }
+
+    .grid{
+      height:100%;
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap:var(--gap);
+    }
+    @media (max-width: 900px){
+      .grid{grid-template-columns: repeat(3, 1fr);}
+    }
+    @media (max-width: 620px){
+      .grid{grid-template-columns: repeat(2, 1fr);}
+    }
+
+    .tile{
+      position:relative;
+      border-radius:var(--radius);
+      overflow:hidden;
+      background:#111;
+      cursor:zoom-in;
+      height:100%;
+      min-height:0;
+    }
+    .tile img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+      transform:scale(1.01);
+      transition:transform .18s ease;
+    }
+    .tile:hover img{transform:scale(1.06);}
+
+    .lightbox{
+      position:fixed;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      background:rgba(0,0,0,.82);
+      padding:24px;
+      z-index:9999;
+      cursor:zoom-out;
+    }
+    .lightbox.open{display:flex;}
+    .lightbox img{
+      max-width:min(1200px, 92vw);
+      max-height:92vh;
+      border-radius:12px;
+      box-shadow:0 20px 80px rgba(0,0,0,.55);
+      cursor:default;
+    }
+
+    .bar{
+      position:fixed;
+      left:14px;
+      bottom:10px;
+      font-size:12px;
+      opacity:.75;
+      user-select:none;
+      pointer-events:none;
+      white-space:nowrap;
+    }
+
+    .status{
+      position:fixed;
+      top:14px;
+      left:14px;
+      right:14px;
+      font-size:13px;
+      opacity:.9;
+      line-height:1.35;
+      pointer-events:none;
+    }
+    .status b{font-weight:600}
+  </style>
 </head>
 
 <body>
+  <div class="status" id="status">載入中…</div>
 
-<div class="gallery" id="gallery"></div>
+  <div class="wrap">
+    <div class="wall">
+      <div id="grid" class="grid"></div>
+    </div>
+  </div>
 
-<div class="lightbox" id="lightbox">
-  <img id="lightboxImg" alt="">
-</div>
+  <div id="lightbox" class="lightbox" aria-hidden="true">
+    <img id="lightboxImg" alt="">
+  </div>
 
-<script>
-/* === 產生圖片（引擎）=== */
-/* 只做一件事：把 img/ 裡「實際存在的 .jpg」全部放進來 */
-const gallery = document.getElementById("gallery");
-const lb = document.getElementById("lightbox");
-const lbImg = document.getElementById("lightboxImg");
+  <div class="bar">點照片放大｜ESC 或點黑幕關閉</div>
 
-/* 依你的實際檔名數量調整即可；這裡給安全上限 */
-for(let i=1;i<=500;i++){
-  const num = String(i).padStart(3,"0");     // 001.jpg, 002.jpg...
-  const src = `img/${num}.jpg`;
+  <script>
+    // ========= 你只要改這兩行 =========
+    const OWNER = "你的GitHub帳號";   // 例如 "jo-wang"
+    const REPO  = "你的repo名稱";     // 例如 "photo-wall-2"
+    // =================================
 
-  const img = new Image();
-  img.src = src;
-  img.loading = "lazy";
+    const IMG_DIR = "img"; // 你的圖片資料夾名稱：img/
+    const BRANCH = "";     // 留空=預設分支；若你一定要指定分支，填 "main" 或 "master"
 
-  img.onerror = ()=> img.remove();           // 不存在就移除
-  img.onclick = ()=>{ lbImg.src = src; lb.classList.add("on"); };
-
-  gallery.appendChild(img);
-}
-
-/* 燈箱關閉 */
-lb.onclick = ()=>{
-  lb.classList.remove("on");
-  lbImg.src="";
-};
-document.addEventListener("keydown", e=>{
-  if(e.key==="Escape"){
-    lb.classList.remove("on");
-    lbImg.src="";
-  }
-});
-</script>
-
-</body>
-</html>
+    const grid = document.getElementById("grid");
+    const statusEl = document.getElementById("status");
+    const lightbo
