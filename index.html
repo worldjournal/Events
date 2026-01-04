@@ -12,13 +12,14 @@ body{
   font-family:system-ui,-apple-system,"Noto Sans TC","Microsoft JhengHei",sans-serif;
 }
 
-/* 照片牆：高度縮短（約 1/2 螢幕），牆內捲動 */
+/* 照片牆：高度縮短（約 50%），牆內捲動 */
 .gallery{
   display:grid;
   grid-template-columns:repeat(4,1fr);
   gap:10px;
-  height:50vh;          /* ← 關鍵：再縮短 */
-  overflow:auto;        /* 牆內捲動 */
+  height:50vh;          /* ← 你要的「再短一點」 */
+  overflow:auto;        /* 牆內捲動，不露下方 */
+  align-content:start;
 }
 .gallery img{
   width:100%;
@@ -27,7 +28,6 @@ body{
   cursor:zoom-in;
   background:#eee;
 }
-
 @media(max-width:900px){
   .gallery{grid-template-columns:repeat(2,1fr);}
 }
@@ -54,33 +54,39 @@ body{
 
 <body>
 
-<!-- 照片牆（你原本能顯示的圖片都在這裡） -->
-<div class="gallery" id="gallery">
-  <!-- 原本的 <img> 內容不動 -->
-</div>
+<div class="gallery" id="gallery"></div>
 
-<!-- 燈箱 -->
 <div class="lightbox" id="lightbox">
   <img id="lightboxImg" alt="">
 </div>
 
 <script>
-/* 燈箱功能：只負責放大，不碰載圖 */
+/* === 產生圖片（引擎）=== */
+/* 只做一件事：把 img/ 裡「實際存在的 .jpg」全部放進來 */
+const gallery = document.getElementById("gallery");
 const lb = document.getElementById("lightbox");
 const lbImg = document.getElementById("lightboxImg");
 
-document.getElementById("gallery").addEventListener("click", e=>{
-  if(e.target.tagName==="IMG"){
-    lbImg.src = e.target.src;
-    lb.classList.add("on");
-  }
-});
+/* 依你的實際檔名數量調整即可；這裡給安全上限 */
+for(let i=1;i<=500;i++){
+  const num = String(i).padStart(3,"0");     // 001.jpg, 002.jpg...
+  const src = `img/${num}.jpg`;
 
-lb.addEventListener("click", ()=>{
+  const img = new Image();
+  img.src = src;
+  img.loading = "lazy";
+
+  img.onerror = ()=> img.remove();           // 不存在就移除
+  img.onclick = ()=>{ lbImg.src = src; lb.classList.add("on"); };
+
+  gallery.appendChild(img);
+}
+
+/* 燈箱關閉 */
+lb.onclick = ()=>{
   lb.classList.remove("on");
   lbImg.src="";
-});
-
+};
 document.addEventListener("keydown", e=>{
   if(e.key==="Escape"){
     lb.classList.remove("on");
