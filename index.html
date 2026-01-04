@@ -1,151 +1,95 @@
+---
+---
+
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Photo Wall</title>
+
   <style>
-    :root{
-      --page-bg:#0b0b0c;
-      --gap:10px;
-      --radius:10px;
-      --wall-height:66vh; /* 約 2/3 視窗高度 */
-    }
-    *{box-sizing:border-box}
-    html, body{height:100%}
     body{
       margin:0;
-      background:var(--page-bg);
-      color:#fff;
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", Arial, sans-serif;
-      overflow:hidden; /* 不讓頁面往下滾 */
+      background:#000;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont;
     }
 
-    /* 盡量把佈景/外掛塞的底部區塊隱藏掉 */
-    footer, .footer, #footer,
-    .ads, .ad, .advert, .advertisement, #ads, #ad, #advert, #advertisement,
-    .site-footer, .page-footer, .bottom-ad, .ad-container, .ads-container {
-      display:none !important;
-      height:0 !important;
-      overflow:hidden !important;
-    }
-
-    .wrap{
-      height:100vh;
-      padding:14px;
-      display:flex;
-      align-items:flex-start;
-      justify-content:center;
-    }
-
-    .wall{
-      width:min(1100px, 100%);
-      height:var(--wall-height);
-      overflow:hidden; /* 固定高度，不露下方 */
-      border-radius:14px;
-    }
-
-    .grid{
-      height:100%;
+    .gallery{
       display:grid;
       grid-template-columns: repeat(4, 1fr);
-      gap:var(--gap);
-    }
-    @media (max-width: 900px){
-      .grid{grid-template-columns: repeat(3, 1fr);}
-    }
-    @media (max-width: 620px){
-      .grid{grid-template-columns: repeat(2, 1fr);}
+      gap:10px;
+      padding:12px;
+      max-width:1200px;
+      margin:auto;
     }
 
-    .tile{
-      position:relative;
-      border-radius:var(--radius);
-      overflow:hidden;
-      background:#111;
-      cursor:zoom-in;
-      height:100%;
-      min-height:0;
-    }
-    .tile img{
+    .gallery img{
       width:100%;
       height:100%;
       object-fit:cover;
+      cursor:pointer;
       display:block;
-      transform:scale(1.01);
-      transition:transform .18s ease;
     }
-    .tile:hover img{transform:scale(1.06);}
 
+    @media (max-width:900px){
+      .gallery{ grid-template-columns:repeat(3,1fr); }
+    }
+    @media (max-width:600px){
+      .gallery{ grid-template-columns:repeat(2,1fr); }
+    }
+
+    /* 簡單燈箱 */
     .lightbox{
       position:fixed;
       inset:0;
+      background:rgba(0,0,0,.85);
       display:none;
       align-items:center;
       justify-content:center;
-      background:rgba(0,0,0,.82);
-      padding:24px;
-      z-index:9999;
-      cursor:zoom-out;
+      z-index:999;
     }
-    .lightbox.open{display:flex;}
     .lightbox img{
-      max-width:min(1200px, 92vw);
-      max-height:92vh;
-      border-radius:12px;
-      box-shadow:0 20px 80px rgba(0,0,0,.55);
-      cursor:default;
+      max-width:90vw;
+      max-height:90vh;
     }
-
-    .bar{
-      position:fixed;
-      left:14px;
-      bottom:10px;
-      font-size:12px;
-      opacity:.75;
-      user-select:none;
-      pointer-events:none;
-      white-space:nowrap;
-    }
-
-    .status{
-      position:fixed;
-      top:14px;
-      left:14px;
-      right:14px;
-      font-size:13px;
-      opacity:.9;
-      line-height:1.35;
-      pointer-events:none;
-    }
-    .status b{font-weight:600}
   </style>
 </head>
 
 <body>
-  <div class="status" id="status">載入中…</div>
 
-  <div class="wrap">
-    <div class="wall">
-      <div id="grid" class="grid"></div>
-    </div>
-  </div>
+<div class="gallery">
+  {% assign files = site.static_files
+     | where_exp:"f","f.path contains '/img/'"
+     | sort: "name" %}
 
-  <div id="lightbox" class="lightbox" aria-hidden="true">
-    <img id="lightboxImg" alt="">
-  </div>
+  {% for f in files %}
+    {% if f.extname == '.jpg' or f.extname == '.png' or f.extname == '.jpeg' or f.extname == '.webp' %}
+      <img src="{{ f.path | relative_url }}" alt="">
+    {% endif %}
+  {% endfor %}
+</div>
 
-  <div class="bar">點照片放大｜ESC 或點黑幕關閉</div>
+<div class="lightbox" id="lightbox">
+  <img id="lightboxImg">
+</div>
 
-  <script>
-    // ========= 你只要改這兩行 =========
-    const OWNER = "你的GitHub帳號";   // 例如 "jo-wang"
-    const REPO  = "你的repo名稱";     // 例如 "photo-wall-2"
-    // =================================
+<script>
+  const lb = document.getElementById('lightbox');
+  const lbImg = document.getElementById('lightboxImg');
 
-    const IMG_DIR = "img"; // 你的圖片資料夾名稱：img/
-    const BRANCH = "";     // 留空=預設分支；若你一定要指定分支，填 "main" 或 "master"
+  document.querySelectorAll('.gallery img').forEach(img=>{
+    img.onclick = ()=>{
+      lbImg.src = img.src;
+      lb.style.display='flex';
+    }
+  });
 
-    const grid = document.getElementById("grid");
-    const statusEl = document.getElementById("status");
-    const lightbo
+  lb.onclick = ()=>{
+    lb.style.display='none';
+    lbImg.src='';
+  };
+</script>
+
+</body>
+</html>
