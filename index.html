@@ -8,20 +8,23 @@
   body{margin:0;padding:14px;font-family:system-ui,-apple-system,"Noto Sans TC","Microsoft JhengHei",sans-serif}
   .status{padding:10px 12px;border-radius:10px;background:#f3f4f6;margin-bottom:12px;word-break:break-all}
 
-  /* 照片牆：固定約 2/3 高度，但「牆內可捲動」→ 不會只剩第一列 */
+  /* 照片牆：固定約 2/3 高度，牆內捲動 */
   .g{
     display:grid;
     grid-template-columns:repeat(4,1fr);
     gap:10px;
-    max-height:66vh;
-    overflow:auto;                 /* ← 這行是關鍵：改 auto，不用 hidden */
+    height:66vh;             /* 用 height 不是 max-height，避免只露第一列 */
+    overflow-y:auto;
+    overflow-x:hidden;
+    align-content:start;
+    padding-right:6px;        /* 避免捲軸壓到圖 */
     -webkit-overflow-scrolling:touch;
-    padding-right:6px;             /* 避免捲軸壓到圖 */
   }
   .g a{display:block}
   .g img{width:100%;height:auto;display:block;background:#eee;cursor:zoom-in}
   @media(max-width:900px){.g{grid-template-columns:repeat(2,1fr)}}
 
+  /* 燈箱 */
   .lb{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.86);z-index:9999}
   .lb.on{display:flex}
   .lb img{max-width:96vw;max-height:96vh;object-fit:contain;background:#111}
@@ -31,57 +34,72 @@
 <body>
 
 <div id="status" class="status">載入中…</div>
-<div id="gallery" class="g"></div>
+<div id="gallery" class="g" tabindex="0" aria-label="Photos"></div>
 
-<div id="lb" class="lb" aria-hidden="true">
-  <img id="big" alt="">
-</div>
+<div id="lb" class="lb" aria-hidden="true"><img id="big" alt=""></div>
 
 <script>
 (() => {
-  const owner = "worldjournal";
-  const repo  = "Events";
+  const owner="worldjournal";
+  const repo="Events";
+  const statusEl=document.getElementById("status");
+  const G=document.getElementById("gallery");
+  const LB=document.getElementById("lb");
+  const BIG=document.getElementById("big");
 
-  const statusEl = document.getElementById("status");
-  const G  = document.getElementById("gallery");
-  const LB = document.getElementById("lb");
-  const BIG= document.getElementById("big");
+  const openLB=(url)=>{ BIG.src=url; LB.classList.add("on"); };
+  const closeLB=()=>{ LB.classList.remove("on"); BIG.src=""; };
+  LB.onclick=e=>{ if(e.target===LB) closeLB(); };
+  document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeLB(); });
 
-  const openLB = (url) => { BIG.src = url; LB.classList.add("on"); };
-  const closeLB = () => { LB.classList.remove("on"); BIG.src = ""; };
-  LB.onclick = (e) => { if (e.target === LB) closeLB(); };
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeLB(); });
+  const apiRepo = `https://api.github.com/repos/${owner}/${repo}`;
 
-  const api = (path) => `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+  // 把路徑每一段各自 encode，保留斜線
+  const encodePath = (p) => p.split("/").map(encodeURIComponent).join("/");
 
-  async function tryList(label, apiPath) {
-    const r = await fetch(api(apiPath), { cache: "no-store" });
-    let j=null; try{ j=await r.json(); }catch{}
-    return { ok:r.ok, status:r.status, json:j, label };
+  async function getDefaultBranch(){
+    const r = await fetch(apiRepo, {cache:"no-store"});
+    if(!r.ok) throw new Error(`Repo API HTTP ${r.status}`);
+    const j = await r.json();
+    return j.default_branch;
   }
 
-  function render(files, folderLabel) {
-    const imgs = files
-      .filter(f => f && f.type==="file" && /\.(jpe?g|png|webp|gif)$/i.test(f.name))
-      .sort((a,b)=>a.name.localeCompare(b.name, "zh-Hant"));
+  async function getTree(branch){
+    const r1 = await fetch(`${apiRepo}/git/refs/heads/${encodeURIComponent(branch)}`, {cache:"no-store"});
+    if(!r1.ok) throw new Error(`Ref HTTP ${r1.status}`);
+    const ref = await r1.json();
+    const sha = ref.object && ref.object.sha;
+    if(!sha) throw new Error("No ref sha");
 
-    if (!imgs.length){
-      statusEl.textContent = `找到資料夾「${folderLabel}」，但裡面沒有圖片檔（jpg/png/webp/gif）。`;
-      return;
-    }
+    const r2 = await fetch(`${apiRepo}/git/trees/${sha}?recursive=1`, {cache:"no-store"});
+    if(!r2.ok) throw new Error(`Tree HTTP ${r2.status}`);
+    const tree = await r2.json();
+    if(!tree.tree) throw new Error("No tree");
+    return tree.tree;
+  }
 
-    statusEl.innerHTML = `已載入 ${imgs.length} 張（資料夾：${folderLabel}）<div class="hint">照片牆可在框內捲動；點圖放大；Esc / 點黑底關閉。</div>`;
+  function isImgPath(path){
+    // 支援 img/ 與 img␠/，也支援底下子資料夾
+    return /^(img|img )\/.+\.(jpe?g|png|webp|gif)$/i.test(path);
+  }
 
+  function rawUrl(branch, path){
+    return `https://raw.githubusercontent.com/${owner}/${repo}/${encodeURIComponent(branch)}/${encodePath(path)}`;
+  }
+
+  function render(branch, paths){
+    statusEl.innerHTML = `已載入 ${paths.length} 張（來源：${branch}）<div class="hint">照片牆區塊內可捲動；點圖放大；Esc / 點黑底關閉。</div>`;
     const frag=document.createDocumentFragment();
-    imgs.forEach(f=>{
+    paths.forEach(p=>{
+      const url = rawUrl(branch, p);
       const a=document.createElement("a");
-      a.href=f.download_url;
-      a.onclick=(e)=>{ e.preventDefault(); openLB(f.download_url); };
+      a.href=url;
+      a.onclick=(e)=>{ e.preventDefault(); openLB(url); };
 
       const img=new Image();
       img.loading="lazy";
-      img.src=f.download_url;
-      img.alt=f.name;
+      img.src=url;
+      img.alt=p.split("/").pop() || "";
 
       a.appendChild(img);
       frag.appendChild(a);
@@ -90,15 +108,23 @@
   }
 
   (async ()=>{
-    const r1 = await tryList("img", "img");
-    if (r1.ok && Array.isArray(r1.json)) { render(r1.json, "img"); return; }
+    try{
+      const branch = await getDefaultBranch();
+      const tree = await getTree(branch);
 
-    const r2 = await tryList("img␠", "img%20");
-    if (r2.ok && Array.isArray(r2.json)) { render(r2.json, "img␠"); return; }
+      const paths = tree
+        .filter(n=>n && n.type==="blob" && n.path && isImgPath(n.path))
+        .map(n=>n.path)
+        .sort((a,b)=>a.localeCompare(b, "zh-Hant"));
 
-    const m1 = (r1.json && r1.json.message) ? `；${r1.json.message}` : "";
-    const m2 = (r2.json && r2.json.message) ? `；${r2.json.message}` : "";
-    statusEl.textContent = `載入失敗：img HTTP ${r1.status}${m1} | img␠ HTTP ${r2.status}${m2}`;
+      if(paths.length===0){
+        statusEl.textContent = "找不到任何 img/（或 img␠/）底下的圖片檔。";
+        return;
+      }
+      render(branch, paths);
+    }catch(err){
+      statusEl.textContent = "載入失敗：" + (err && err.message ? err.message : String(err));
+    }
   })();
 })();
 </script>
