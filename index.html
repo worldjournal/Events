@@ -5,45 +5,92 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Events</title>
 <style>
-body{margin:0;padding:14px;font-family:system-ui,-apple-system,"Noto Sans TC","Microsoft JhengHei",sans-serif}
-.g{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;max-height:66vh;overflow:hidden}
-.g img{width:100%;height:auto;display:block;background:#eee;cursor:zoom-in}
-@media(max-width:900px){.g{grid-template-columns:repeat(2,1fr)}}
-.lb{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.86);z-index:9999}
+body{
+  margin:0;
+  padding:14px;
+  font-family:system-ui,-apple-system,"Noto Sans TC","Microsoft JhengHei",sans-serif
+}
+.g{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:10px;
+  max-height:66vh;      /* 只顯示約 2/3 */
+  overflow:hidden;     /* 下方內容（廣告）不露出 */
+}
+.g img{
+  width:100%;
+  height:auto;
+  display:block;
+  background:#eee;
+  cursor:zoom-in;
+}
+@media(max-width:900px){
+  .g{grid-template-columns:repeat(2,1fr)}
+}
+.lb{
+  position:fixed;
+  inset:0;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  background:rgba(0,0,0,.86);
+  z-index:9999;
+}
 .lb.on{display:flex}
-.big{max-width:96vw;max-height:96vh;object-fit:contain;background:#111}
+.lb img{
+  max-width:96vw;
+  max-height:96vh;
+  object-fit:contain;
+  background:#111;
+}
 </style>
 </head>
 <body>
 
 <div id="gallery" class="g"></div>
 
-<div id="lb" class="lb"><img id="big" class="big" alt=""></div>
+<div id="lb" class="lb">
+  <img id="big" alt="">
+</div>
 
 <script>
-const YEARS=["1976","1977","1978","1979","1980","1989","1991","1992","1995","1996",
-             "1997","1999","2000","2001","2011","2015","2016","2017","2018","2019","2022"];
+const owner = "worldjournal";
+const repo  = "Events";
+const path  = "img";
 
-const G=document.getElementById("gallery"),
-      LB=document.getElementById("lb"),
-      BIG=document.getElementById("big");
+const G  = document.getElementById("gallery");
+const LB = document.getElementById("lb");
+const BIG= document.getElementById("big");
 
-const open=(src)=>{BIG.src=src;LB.classList.add("on");};
-const close=()=>{LB.classList.remove("on");BIG.src="";};
-
-LB.onclick=e=>{if(e.target===LB) close();};
-addEventListener("keydown",e=>{if(e.key==="Escape") close();});
-
-YEARS.forEach(y=>{
-  for(let m=1;m<=12;m++)for(let d=1;d<=31;d++){
-    const mm=String(m).padStart(2,"0"), dd=String(d).padStart(2,"0");
-    const src=`img/${y}${mm}${dd}.jpg`;
-    const img=new Image();
-    img.loading="lazy";
-    img.src=src;
-    img.onload=()=>{img.onclick=()=>open(src); G.appendChild(img);};
-  }
+const close = ()=>{
+  LB.classList.remove("on");
+  BIG.src="";
+};
+LB.onclick = e => { if(e.target===LB) close(); };
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape") close();
 });
+
+fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`)
+  .then(r=>r.json())
+  .then(files=>{
+    files
+      .filter(f=>f.type==="file" && /\.(jpe?g|png|webp|gif)$/i.test(f.name))
+      .sort((a,b)=>a.name.localeCompare(b.name,"zh-Hant"))
+      .forEach(f=>{
+        const img=new Image();
+        img.loading="lazy";
+        img.src=f.download_url;
+        img.onclick=()=>{
+          BIG.src=f.download_url;
+          LB.classList.add("on");
+        };
+        G.appendChild(img);
+      });
+  })
+  .catch(()=>{
+    G.textContent="圖片載入失敗";
+  });
 </script>
 
 </body>
