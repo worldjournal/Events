@@ -4,27 +4,45 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Events Photo Wall</title>
+
   <style>
-    body { margin: 0; padding: 20px; font-family: system-ui, -apple-system, "Noto Sans TC", sans-serif; }
-    .gallery { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-    .gallery a { display:block; }
-    .gallery img { width: 100%; height: auto; display: block; object-fit: cover; background: #f0f0f0; }
-    @media (max-width: 900px){ .gallery{ grid-template-columns: repeat(2, 1fr);} }
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: system-ui, -apple-system, "Noto Sans TC", sans-serif;
+      background: #fff;
+    }
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+    .gallery img {
+      width: 100%;
+      height: auto;
+      display: block;
+      object-fit: cover;
+      background: #f0f0f0;
+    }
+    @media (max-width: 900px) {
+      .gallery { grid-template-columns: repeat(2, 1fr); }
+    }
   </style>
 </head>
 <body>
+
   <div id="gallery" class="gallery"></div>
 
   <script>
-    const owner = "worldjournal";
-    const repo  = "Events";
-    const branch = "main"; // 如果你的 Pages 用的是 gh-pages，就改成 "gh-pages"
-    const folder = "img";
+    // ✅ 正確設定（對 worldjournal.github.io / Events）
+    const owner  = "worldjournal";
+    const repo   = "worldjournal.github.io";
+    const branch = "main";      // 如果 Pages 用 gh-pages，才改成 "gh-pages"
+    const path   = "Events/img";
 
     const gallery = document.getElementById("gallery");
 
-    // GitHub Contents API：列出資料夾內檔案
-    const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${folder}?ref=${branch}`;
+    const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
 
     fetch(apiUrl)
       .then(r => {
@@ -32,39 +50,24 @@
         return r.json();
       })
       .then(items => {
-        // 只取圖片檔
         const exts = new Set(["jpg","jpeg","png","gif","webp","avif"]);
-        const imgs = items
+
+        items
           .filter(x => x.type === "file")
-          .filter(x => {
-            const name = x.name.toLowerCase();
-            const ext = name.split(".").pop();
-            return exts.has(ext);
-          })
-          // 依檔名排序（你可改成你想要的排序規則）
-          .sort((a,b) => a.name.localeCompare(b.name, "en"));
-
-        imgs.forEach(x => {
-          // 用相對路徑，確保在 /Events/ 子路徑下不破
-          const src = `${folder}/${x.name}`;
-
-          const a = document.createElement("a");
-          a.href = src;
-          a.target = "_blank";
-          a.rel = "noopener";
-
-          const img = document.createElement("img");
-          img.loading = "lazy";
-          img.src = src;
-          img.alt = x.name;
-
-          a.appendChild(img);
-          gallery.appendChild(a);
-        });
+          .filter(x => exts.has(x.name.toLowerCase().split(".").pop()))
+          .sort((a,b) => a.name.localeCompare(b.name, "en"))
+          .forEach(x => {
+            const img = document.createElement("img");
+            img.src = `img/${x.name}`;   // ✅ 相對路徑（關鍵）
+            img.loading = "lazy";
+            img.alt = x.name;
+            gallery.appendChild(img);
+          });
       })
       .catch(err => {
-        gallery.innerHTML = `<p>載入失敗：${err.message}<br>請確認 branch、repo 名稱、以及 img/ 資料夾位置。</p>`;
+        gallery.textContent = err.message;
       });
   </script>
+
 </body>
 </html>
