@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Events Photo Wall</title>
 
   <style>
@@ -10,7 +10,6 @@
       margin: 0;
       padding: 20px;
       font-family: system-ui, -apple-system, "Noto Sans TC", sans-serif;
-      background: #fff;
     }
     .gallery {
       display: grid;
@@ -22,52 +21,35 @@
       height: auto;
       display: block;
       object-fit: cover;
-      background: #f0f0f0;
+      background: #eee;
     }
     @media (max-width: 900px) {
       .gallery { grid-template-columns: repeat(2, 1fr); }
     }
   </style>
 </head>
-<body>
 
+<body>
   <div id="gallery" class="gallery"></div>
 
   <script>
-    // ✅ 正確設定（對 worldjournal.github.io / Events）
-    const owner  = "worldjournal";
-    const repo   = "worldjournal.github.io";
-    const branch = "main";      // 如果 Pages 用 gh-pages，才改成 "gh-pages"
-    const path   = "Events/img";
+    // 🔴 你只需要改這一段：把檔名填進來
+    const images = [
+      "photo_001.jpg",
+      "photo_002.jpg",
+      "IMG_8432.JPG",
+      "event-nyc-01.png"
+      // 繼續加
+    ];
 
     const gallery = document.getElementById("gallery");
 
-    const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
-
-    fetch(apiUrl)
-      .then(r => {
-        if (!r.ok) throw new Error(`GitHub API error: ${r.status}`);
-        return r.json();
-      })
-      .then(items => {
-        const exts = new Set(["jpg","jpeg","png","gif","webp","avif"]);
-
-        items
-          .filter(x => x.type === "file")
-          .filter(x => exts.has(x.name.toLowerCase().split(".").pop()))
-          .sort((a,b) => a.name.localeCompare(b.name, "en"))
-          .forEach(x => {
-            const img = document.createElement("img");
-            img.src = `img/${x.name}`;   // ✅ 相對路徑（關鍵）
-            img.loading = "lazy";
-            img.alt = x.name;
-            gallery.appendChild(img);
-          });
-      })
-      .catch(err => {
-        gallery.textContent = err.message;
-      });
+    images.forEach(name => {
+      const img = document.createElement("img");
+      img.src = `img/${name}`;   // ← 關鍵：相對路徑
+      img.loading = "lazy";
+      gallery.appendChild(img);
+    });
   </script>
-
 </body>
 </html>
