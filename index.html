@@ -4,100 +4,110 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Events</title>
-
 <style>
-body{
-  margin:0;
-  padding:14px;
-  font-family:system-ui,-apple-system,"Noto Sans TC","Microsoft JhengHei",sans-serif;
-}
+  body{margin:0;padding:14px;font-family:system-ui,-apple-system,"Noto Sans TC","Microsoft JhengHei",sans-serif}
+  .status{padding:10px 12px;border-radius:10px;background:#f3f4f6;margin-bottom:12px;word-break:break-all}
+  .g{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;max-height:66vh;overflow:hidden}
+  .g a{display:block}
+  .g img{width:100%;height:auto;display:block;background:#eee;cursor:zoom-in}
+  @media(max-width:900px){.g{grid-template-columns:repeat(2,1fr)}}
 
-/* 照片牆：顯示約 2/3 高度 */
-.g{
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:10px;
-  max-height:66vh;
-  overflow:hidden;
-}
-.g img{
-  width:100%;
-  height:auto;
-  display:block;
-  background:#eee;
-  cursor:zoom-in;
-}
-@media(max-width:900px){
-  .g{grid-template-columns:repeat(2,1fr);}
-}
-
-/* 燈箱 */
-.lb{
-  position:fixed;
-  inset:0;
-  display:none;
-  align-items:center;
-  justify-content:center;
-  background:rgba(0,0,0,.86);
-  z-index:9999;
-}
-.lb.on{display:flex}
-.lb img{
-  max-width:96vw;
-  max-height:96vh;
-  object-fit:contain;
-  background:#111;
-}
+  .lb{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.86);z-index:9999}
+  .lb.on{display:flex}
+  .lb img{max-width:96vw;max-height:96vh;object-fit:contain;background:#111}
+  .hint{font-size:12px;opacity:.8;margin-top:6px}
 </style>
 </head>
-
 <body>
 
+<div id="status" class="status">載入中…</div>
 <div id="gallery" class="g"></div>
 
-<div id="lb" class="lb">
+<div id="lb" class="lb" aria-hidden="true">
   <img id="big" alt="">
 </div>
 
+<noscript>
+  <div class="status">你的瀏覽器目前停用 JavaScript；照片牆需要 JavaScript 才能顯示。</div>
+</noscript>
+
 <script>
-/* ===== 不猜測，直接列出 img/ 裡所有圖片 ===== */
-const owner="worldjournal";
-const repo="Events";
-const path="img";
+(() => {
+  const owner = "worldjournal";
+  const repo  = "Events";
 
-const G=document.getElementById("gallery");
-const LB=document.getElementById("lb");
-const BIG=document.getElementById("big");
+  const statusEl = document.getElementById("status");
+  const G  = document.getElementById("gallery");
+  const LB = document.getElementById("lb");
+  const BIG= document.getElementById("big");
 
-const closeLB=()=>{
-  LB.classList.remove("on");
-  BIG.src="";
-};
-LB.onclick=e=>{ if(e.target===LB) closeLB(); };
-document.addEventListener("keydown",e=>{
-  if(e.key==="Escape") closeLB();
-});
+  const openLB = (url) => { BIG.src = url; LB.classList.add("on"); };
+  const closeLB = () => { LB.classList.remove("on"); BIG.src = ""; };
+  LB.onclick = (e) => { if (e.target === LB) closeLB(); };
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeLB(); });
 
-fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`)
-  .then(r=>r.json())
-  .then(files=>{
-    files
-      .filter(f=>f.type==="file" && /\.(jpe?g|png|webp|gif)$/i.test(f.name))
-      .sort((a,b)=>a.name.localeCompare(b.name,"zh-Hant"))
-      .forEach(f=>{
-        const img=new Image();
-        img.src=f.download_url;
-        img.loading="lazy";
-        img.onclick=()=>{
-          BIG.src=f.download_url;
-          LB.classList.add("on");
-        };
-        G.appendChild(img);
-      });
-  })
-  .catch(()=>{
-    G.textContent="圖片載入失敗";
-  });
+  const api = (path) => `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+
+  async function tryList(pathLabel, apiPath) {
+    const r = await fetch(api(apiPath), { cache: "no-store" });
+    let j = null;
+    try { j = await r.json(); } catch {}
+    return { ok: r.ok, status: r.status, json: j, pathLabel, apiPath };
+  }
+
+  function render(files, folderShown) {
+    const imgs = files
+      .filter(f => f && f.type === "file" && /\.(jpe?g|png|webp|gif)$/i.test(f.name))
+      .sort((a,b) => a.name.localeCompare(b.name));
+
+    if (imgs.length === 0) {
+      statusEl.textContent = `找到資料夾「${folderShown}」，但裡面沒有可顯示的圖片檔（jpg/png/webp/gif）。`;
+      return;
+    }
+
+    statusEl.innerHTML = `已載入 ${imgs.length} 張（資料夾：${folderShown}）<div class="hint">點圖可放大；按 Esc 或點黑底關閉。</div>`;
+
+    const frag = document.createDocumentFragment();
+    imgs.forEach(f => {
+      const a = document.createElement("a");
+      a.href = f.download_url;
+      a.onclick = (e) => { e.preventDefault(); openLB(f.download_url); };
+
+      const img = new Image();
+      img.loading = "lazy";
+      img.src = f.download_url;
+      img.alt = f.name;
+
+      a.appendChild(img);
+      frag.appendChild(a);
+    });
+    G.replaceChildren(frag);
+  }
+
+  (async () => {
+    // 先試 img，再試 img%20（代表資料夾可能叫「img␠」）
+    const attempts = [
+      await tryList("img",   "img"),
+      await tryList("img␠",  "img%20")
+    ];
+
+    const ok = attempts.find(x => x.ok && Array.isArray(x.json));
+    if (ok) {
+      render(ok.json, ok.pathLabel);
+      return;
+    }
+
+    // 把失敗原因直接顯示在頁面上（避免空白）
+    const msg = attempts.map(x => {
+      const detail = (x.json && x.json.message) ? `；${x.json.message}` : "";
+      return `${x.pathLabel}: HTTP ${x.status}${detail}`;
+    }).join(" | ");
+
+    statusEl.textContent =
+      `載入失敗：${msg}。` +
+      `（如果是 403：GitHub API 被限流；等一下再重整或改用別的網路。）`;
+  })();
+})();
 </script>
 
 </body>
