@@ -1,236 +1,70 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>重要報導</title>
-<style>
-  :root{
-    --gap:10px;
-    --bg:#fafafa;
-    --radius:12px;
-  }
-  *{box-sizing:border-box}
-  body{
-    margin:0;
-    padding:20px;
-    font-family:system-ui,"Noto Sans TC",Arial,Helvetica,sans-serif;
-    background:var(--bg);
-  }
-  h1{margin:0 0 16px 0;font-weight:700}
-
-  /* 一行 4 張（桌機），螢幕縮小自動變 3 / 2 / 1 */
-  .gallery{
-    display:grid;
-    grid-template-columns:repeat(4, minmax(0, 1fr));
-    gap:var(--gap);
-  }
-  @media (max-width: 1100px){ .gallery{ grid-template-columns:repeat(3, minmax(0, 1fr)); } }
-  @media (max-width: 780px){  .gallery{ grid-template-columns:repeat(2, minmax(0, 1fr)); } }
-  @media (max-width: 480px){  .gallery{ grid-template-columns:repeat(1, minmax(0, 1fr)); } }
-
-  .gallery-item{
-    position:relative;
-    overflow:hidden;
-    border-radius:var(--radius);
-    cursor:pointer;
-    background:#eee;
-  }
-
-  /* 3:4 縮圖（直式報版感） */
-  .thumb{
-    width:100%;
-    aspect-ratio: 3 / 4;   /* 直式長板 */
-    overflow:hidden;
-  }
-  .gallery-item img{
-    width:100%;
-    height:100%;
-    object-fit:cover;
-    display:block;
-    transition:transform .35s ease;
-  }
-  .gallery-item:hover img{ transform:scale(1.04) }
-
-  /* hover 才顯示標題 */
-  .caption-small{
-    position:absolute;left:0;right:0;bottom:0;
-    padding:8px 10px;
-    background:rgba(0,0,0,.62);
-    color:#fff;
-    font-size:14px;
-    line-height:1.4;
-    opacity:0;
-    transition:opacity .2s ease;
-  }
-  .gallery-item:hover .caption-small{ opacity:1 }
-
-  /* Lightbox */
-  .lightbox{
-    position:fixed;inset:0;
-    display:none;
-    justify-content:center;
-    align-items:center;
-    background:rgba(0,0,0,.86);
-    z-index:1000;
-    padding:24px;
-  }
-  .lightbox.open{ display:flex }
-  .lightbox-inner{
-    max-width:96vw;
-    max-height:90vh;
-    position:relative;
-  }
-  .lightbox-img{
-    max-width:96vw;
-    max-height:78vh;
-    border-radius:10px;
-    display:block;
-    margin:0 auto;
-  }
-  .caption-large{
-    color:#fff;
-    margin-top:12px;
-    font-size:16px;
-    line-height:1.6;
-    text-align:center;
-    white-space:pre-wrap;
-  }
-  .lb-close{
-    position:absolute;
-    top:-8px;right:-8px;
-    width:40px;height:40px;
-    border-radius:50%;
-    background:rgba(0,0,0,.55);
-    color:#fff;
-    border:none;
-    font-size:26px;
-    cursor:pointer;
-  }
-
-  /* 嵌入模式：?embed=1 */
-  body.embed { padding:0; background:transparent; }
-  body.embed h1{ display:none; }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Events Photo Wall</title>
+  <style>
+    body { margin: 0; padding: 20px; font-family: system-ui, -apple-system, "Noto Sans TC", sans-serif; }
+    .gallery { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .gallery a { display:block; }
+    .gallery img { width: 100%; height: auto; display: block; object-fit: cover; background: #f0f0f0; }
+    @media (max-width: 900px){ .gallery{ grid-template-columns: repeat(2, 1fr);} }
+  </style>
 </head>
 <body>
+  <div id="gallery" class="gallery"></div>
 
-<h1>照片牆</h1>
+  <script>
+    const owner = "worldjournal";
+    const repo  = "Events";
+    const branch = "main"; // 如果你的 Pages 用的是 gh-pages，就改成 "gh-pages"
+    const folder = "img";
 
-<div class="gallery" id="gallery"></div>
+    const gallery = document.getElementById("gallery");
 
-<!-- Lightbox -->
-<div class="lightbox" id="lightbox" aria-modal="true" role="dialog">
-  <div class="lightbox-inner">
-    <button class="lb-close" id="lbClose" aria-label="關閉">&times;</button>
-    <img class="lightbox-img" id="lbImg" src="" alt="">
-    <div class="caption-large" id="lbCaption"></div>
-  </div>
-</div>
+    // GitHub Contents API：列出資料夾內檔案
+    const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${folder}?ref=${branch}`;
 
-<script>
-/* ===== 你只要改這裡：48 張的檔名與標題 =====
-   file：請用 img/你的檔名.jpg
-   caption：hover 與放大時顯示的文字
-*/
-const photos = [
-  { file: "img/REPLACE_01.jpg", caption: "REPLACE caption 01" },
-  { file: "img/REPLACE_02.jpg", caption: "REPLACE caption 02" },
-  { file: "img/REPLACE_03.jpg", caption: "REPLACE caption 03" },
-  { file: "img/REPLACE_04.jpg", caption: "REPLACE caption 04" },
-  { file: "img/REPLACE_05.jpg", caption: "REPLACE caption 05" },
-  { file: "img/REPLACE_06.jpg", caption: "REPLACE caption 06" },
-  { file: "img/REPLACE_07.jpg", caption: "REPLACE caption 07" },
-  { file: "img/REPLACE_08.jpg", caption: "REPLACE caption 08" },
-  { file: "img/REPLACE_09.jpg", caption: "REPLACE caption 09" },
-  { file: "img/REPLACE_10.jpg", caption: "REPLACE caption 10" },
-  { file: "img/REPLACE_11.jpg", caption: "REPLACE caption 11" },
-  { file: "img/REPLACE_12.jpg", caption: "REPLACE caption 12" },
-  { file: "img/REPLACE_13.jpg", caption: "REPLACE caption 13" },
-  { file: "img/REPLACE_14.jpg", caption: "REPLACE caption 14" },
-  { file: "img/REPLACE_15.jpg", caption: "REPLACE caption 15" },
-  { file: "img/REPLACE_16.jpg", caption: "REPLACE caption 16" },
-  { file: "img/REPLACE_17.jpg", caption: "REPLACE caption 17" },
-  { file: "img/REPLACE_18.jpg", caption: "REPLACE caption 18" },
-  { file: "img/REPLACE_19.jpg", caption: "REPLACE caption 19" },
-  { file: "img/REPLACE_20.jpg", caption: "REPLACE caption 20" },
-  { file: "img/REPLACE_21.jpg", caption: "REPLACE caption 21" },
-  { file: "img/REPLACE_22.jpg", caption: "REPLACE caption 22" },
-  { file: "img/REPLACE_23.jpg", caption: "REPLACE caption 23" },
-  { file: "img/REPLACE_24.jpg", caption: "REPLACE caption 24" },
-  { file: "img/REPLACE_25.jpg", caption: "REPLACE caption 25" },
-  { file: "img/REPLACE_26.jpg", caption: "REPLACE caption 26" },
-  { file: "img/REPLACE_27.jpg", caption: "REPLACE caption 27" },
-  { file: "img/REPLACE_28.jpg", caption: "REPLACE caption 28" },
-  { file: "img/REPLACE_29.jpg", caption: "REPLACE caption 29" },
-  { file: "img/REPLACE_30.jpg", caption: "REPLACE caption 30" },
-  { file: "img/REPLACE_31.jpg", caption: "REPLACE caption 31" },
-  { file: "img/REPLACE_32.jpg", caption: "REPLACE caption 32" },
-  { file: "img/REPLACE_33.jpg", caption: "REPLACE caption 33" },
-  { file: "img/REPLACE_34.jpg", caption: "REPLACE caption 34" },
-  { file: "img/REPLACE_35.jpg", caption: "REPLACE caption 35" },
-  { file: "img/REPLACE_36.jpg", caption: "REPLACE caption 36" },
-  { file: "img/REPLACE_37.jpg", caption: "REPLACE caption 37" },
-  { file: "img/REPLACE_38.jpg", caption: "REPLACE caption 38" },
-  { file: "img/REPLACE_39.jpg", caption: "REPLACE caption 39" },
-  { file: "img/REPLACE_40.jpg", caption: "REPLACE caption 40" },
-  { file: "img/REPLACE_41.jpg", caption: "REPLACE caption 41" },
-  { file: "img/REPLACE_42.jpg", caption: "REPLACE caption 42" },
-  { file: "img/REPLACE_43.jpg", caption: "REPLACE caption 43" },
-  { file: "img/REPLACE_44.jpg", caption: "REPLACE caption 44" },
-  { file: "img/REPLACE_45.jpg", caption: "REPLACE caption 45" },
-  { file: "img/REPLACE_46.jpg", caption: "REPLACE caption 46" },
-  { file: "img/REPLACE_47.jpg", caption: "REPLACE caption 47" },
-  { file: "img/REPLACE_48.jpg", caption: "REPLACE caption 48" },
-];
+    fetch(apiUrl)
+      .then(r => {
+        if (!r.ok) throw new Error(`GitHub API error: ${r.status}`);
+        return r.json();
+      })
+      .then(items => {
+        // 只取圖片檔
+        const exts = new Set(["jpg","jpeg","png","gif","webp","avif"]);
+        const imgs = items
+          .filter(x => x.type === "file")
+          .filter(x => {
+            const name = x.name.toLowerCase();
+            const ext = name.split(".").pop();
+            return exts.has(ext);
+          })
+          // 依檔名排序（你可改成你想要的排序規則）
+          .sort((a,b) => a.name.localeCompare(b.name, "en"));
 
-/* ===== 下面不用改 ===== */
-(function(){
-  const params = new URLSearchParams(location.search);
-  if (params.get('embed') === '1') document.body.classList.add('embed');
-})();
+        imgs.forEach(x => {
+          // 用相對路徑，確保在 /Events/ 子路徑下不破
+          const src = `${folder}/${x.name}`;
 
-const gallery = document.getElementById("gallery");
+          const a = document.createElement("a");
+          a.href = src;
+          a.target = "_blank";
+          a.rel = "noopener";
 
-// 生成縮圖牆
-photos.forEach((p, idx) => {
-  const item = document.createElement("div");
-  item.className = "gallery-item";
-  item.dataset.large = p.file;
-  item.dataset.captionLarge = p.caption || "";
+          const img = document.createElement("img");
+          img.loading = "lazy";
+          img.src = src;
+          img.alt = x.name;
 
-  item.innerHTML = `
-    <div class="thumb">
-      <img loading="lazy" src="${p.file}" alt="${(p.caption || ("photo " + (idx+1))).replace(/"/g,'')}" />
-    </div>
-    <div class="caption-small">${p.caption || ""}</div>
-  `;
-  gallery.appendChild(item);
-});
-
-// Lightbox 行為
-const lb = document.getElementById('lightbox');
-const lbImg = document.getElementById('lbImg');
-const lbCap = document.getElementById('lbCaption');
-const lbClose = document.getElementById('lbClose');
-
-gallery.addEventListener('click', e => {
-  const item = e.target.closest('.gallery-item');
-  if (!item) return;
-  lbImg.src = item.dataset.large;
-  lbCap.textContent = item.dataset.captionLarge || '';
-  lb.classList.add('open');
-});
-
-function closeLB(){
-  lb.classList.remove('open');
-  lbImg.src = '';
-  lbCap.textContent = '';
-}
-lbClose.addEventListener('click', closeLB);
-lb.addEventListener('click', e => { if (e.target === lb) closeLB(); });
-window.addEventListener('keydown', e => { if (e.key === 'Escape') closeLB(); });
-</script>
-
+          a.appendChild(img);
+          gallery.appendChild(a);
+        });
+      })
+      .catch(err => {
+        gallery.innerHTML = `<p>載入失敗：${err.message}<br>請確認 branch、repo 名稱、以及 img/ 資料夾位置。</p>`;
+      });
+  </script>
 </body>
 </html>
