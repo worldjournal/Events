@@ -5,45 +5,34 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Events</title>
 <style>
-:root{
-  --h: 900px;   /* 縮圖高度：只改數字 */
-  --crop: 25%;  /* 固定看上方 3/4：裁下方 1/4 */
-  --gap: 12px;  /* 每張之間的留白 */
-  --pad: 14px;  /* 每張四邊留白 */
-}
 body{margin:0;background:#fff}
-.grid{
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:var(--gap);
-  padding:var(--gap);
-  background:#fff;
-}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;padding:16px}
 @media(max-width:1100px){.grid{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:780px){.grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:480px){.grid{grid-template-columns:1fr}}
 
-.card{
-  background:#fff;
-  padding:var(--pad);            /* 四邊留白 */
-  border-radius:12px;
-  border:1px solid #eee;         /* 讓留白看得出來 */
-  box-sizing:border-box;
-  cursor:zoom-in;
-}
+.card{background:#fff;padding:14px;border-radius:12px;box-sizing:border-box;cursor:zoom-in;border:1px solid #eee}
 
-.thumb{
+/* 牆上固定高度（你只改這個數字），不裁圖 */
+.frame{
+  height:900px;            /* ← 只改數字即可 */
   width:100%;
-  height:var(--h);
-  display:block;
-  object-fit:cover;
-  object-position:top;
-  clip-path:inset(0 0 var(--crop) 0);
-  border-radius:10px;
   background:#fff;
+  display:flex;
+  align-items:flex-start;  /* 上方對齊：上邊不會被切 */
+  justify-content:center;  /* 左右留白平均：不會裁左右 */
 }
 
-/* Lightbox：整張 */
+/* 關鍵：不裁任何邊（上/左/右都不裁） */
+.thumb{
+  max-width:100%;
+  max-height:100%;
+  width:auto;
+  height:auto;
+  display:block;
+}
+
+/* 燈箱：整張顯示 */
 .lb{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.85);z-index:999999}
 .lb.on{display:flex}
 .lb img{max-width:96vw;max-height:92vh;object-fit:contain}
@@ -73,10 +62,21 @@ body{margin:0;background:#fff}
   const items=await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${FOLDER}?ref=${branch}`).then(r=>r.json());
   const urls=items.filter(i=>i.type==="file"&&ext.test(i.name)).map(i=>i.download_url);
 
-  g.innerHTML=urls.map((u,i)=>`<div class="card" data-i="${i}"><img class="thumb" loading="lazy" src="${u}"></div>`).join("");
-  g.onclick=e=>{const c=e.target.closest(".card");if(!c)return;big.src=urls[c.dataset.i];lb.classList.add("on");};
+  g.innerHTML=urls.map((u,i)=>`
+    <div class="card" data-i="${i}">
+      <div class="frame"><img class="thumb" loading="lazy" src="${u}"></div>
+    </div>
+  `).join("");
+
+  g.onclick=e=>{
+    const c=e.target.closest(".card");
+    if(!c)return;
+    const i=[...g.children].indexOf(c);
+    big.src=urls[i];
+    lb.classList.add("on");
+  };
   x.onclick=()=>lb.classList.remove("on");
-  lb.onclick=e=>e.target===lb&&lb.classList.remove("on");
+  lb.onclick=e=>e.target===lb && lb.classList.remove("on");
 })();
 </script>
 
