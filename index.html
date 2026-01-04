@@ -1,196 +1,40 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Events</title>
-  <style>
-    :root { --gap: 10px; }
-    body { margin:0; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans TC",Arial,sans-serif; background:#fff; }
-    .wrap { padding: 12px; }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: var(--gap);
-      align-items: stretch;
-    }
-    @media (max-width: 1100px) { .grid { grid-template-columns: repeat(3, 1fr); } }
-    @media (max-width: 780px)  { .grid { grid-template-columns: repeat(2, 1fr); } }
-    @media (max-width: 480px)  { .grid { grid-template-columns: repeat(1, 1fr); } }
-
-    .card {
-      position: relative;
-      width: 100%;
-      aspect-ratio: 4 / 3;
-      overflow: hidden;
-      border-radius: 10px;
-      background: #f2f2f2;
-      cursor: zoom-in;
-    }
-    .card img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display:block;
-      transition: transform .2s ease;
-    }
-    .card:hover img { transform: scale(1.03); }
-
-    .status {
-      padding: 10px 12px;
-      font-size: 14px;
-      color: #111;
-    }
-    .status small { color:#666; }
-
-    /* Lightbox */
-    .lb {
-      position: fixed;
-      inset: 0;
-      display: none;
-      z-index: 999999;
-      background: rgba(0,0,0,.85);
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-    }
-    .lb.on { display:flex; }
-    .lb img {
-      max-width: min(1200px, 96vw);
-      max-height: 92vh;
-      width: auto;
-      height: auto;
-      border-radius: 10px;
-      background:#111;
-    }
-    .lb .close {
-      position: fixed;
-      top: 14px;
-      right: 14px;
-      width: 42px;
-      height: 42px;
-      border: 0;
-      border-radius: 999px;
-      background: rgba(255,255,255,.15);
-      color: #fff;
-      font-size: 22px;
-      cursor: pointer;
-    }
-    .lb .hint {
-      position: fixed;
-      bottom: 12px;
-      left: 12px;
-      color: rgba(255,255,255,.75);
-      font-size: 12px;
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Events</title>
+<style>
+:root{--crop:33%;}
+body{margin:0;background:#fff}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:12px}
+@media(max-width:1100px){.grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:780px){.grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px){.grid{grid-template-columns:1fr}}
+.card{overflow:hidden;border-radius:10px;cursor:zoom-in}
+.thumb{width:100%;height:60vh;max-height:520px;min-height:280px;object-fit:cover;object-position:top;clip-path:inset(0 0 var(--crop) 0)}
+.lb{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.85);z-index:999999}
+.lb.on{display:flex}
+.lb img{max-width:96vw;max-height:92vh;object-fit:contain;object-position:top;clip-path:inset(0 0 var(--crop) 0)}
+.close{position:fixed;top:12px;right:12px;width:40px;height:40px;border:0;border-radius:999px;background:rgba(255,255,255,.2);color:#fff;font-size:22px}
+</style>
 </head>
-
 <body>
-  <div class="wrap">
-    <div class="status" id="status">載入中…</div>
-    <div class="grid" id="grid"></div>
-  </div>
-
-  <div class="lb" id="lb" aria-hidden="true">
-    <button class="close" id="lbClose" aria-label="close">×</button>
-    <img id="lbImg" alt="">
-    <div class="hint">Esc 關閉；左右鍵切換</div>
-  </div>
-
-  <script>
-    // === 你只要改這三個變數（如果 repo/分支不同）===
-    const OWNER = "worldjournal";
-    const REPO  = "Events";
-    const BRANCH = "main";   // 如果你用 master，就改成 "master"
-    const FOLDER = "img";    // 圖片資料夾
-
-    const exts = new Set([".jpg",".jpeg",".png",".webp",".gif",".bmp",".svg"]);
-    const statusEl = document.getElementById("status");
-    const gridEl = document.getElementById("grid");
-
-    const lb = document.getElementById("lb");
-    const lbImg = document.getElementById("lbImg");
-    const lbClose = document.getElementById("lbClose");
-
-    let urls = [];
-    let idx = -1;
-
-    function isImage(name){
-      const n = name.toLowerCase();
-      for (const e of exts) if (n.endsWith(e)) return true;
-      return false;
-    }
-
-    function openLb(i){
-      idx = i;
-      lbImg.src = urls[idx];
-      lb.classList.add("on");
-      lb.setAttribute("aria-hidden","false");
-      document.body.style.overflow = "hidden";
-    }
-    function closeLb(){
-      lb.classList.remove("on");
-      lb.setAttribute("aria-hidden","true");
-      lbImg.src = "";
-      document.body.style.overflow = "";
-    }
-    function next(delta){
-      if (!urls.length) return;
-      idx = (idx + delta + urls.length) % urls.length;
-      lbImg.src = urls[idx];
-    }
-
-    lbClose.addEventListener("click", closeLb);
-    lb.addEventListener("click", (e)=>{ if (e.target === lb) closeLb(); });
-    window.addEventListener("keydown", (e)=>{
-      if (!lb.classList.contains("on")) return;
-      if (e.key === "Escape") closeLb();
-      if (e.key === "ArrowRight") next(1);
-      if (e.key === "ArrowLeft") next(-1);
-    });
-
-    async function load(){
-      const api = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FOLDER}?ref=${BRANCH}`;
-      try{
-        const r = await fetch(api, { headers: { "Accept": "application/vnd.github+json" }});
-        if (!r.ok) throw new Error(`GitHub API ${r.status}`);
-        const items = await r.json();
-
-        // 只取檔案（忽略資料夾），且只取圖片
-        const imgs = (items || [])
-          .filter(x => x && x.type === "file" && isImage(x.name) && x.download_url)
-          // 讓排序穩定：依檔名排序（你想改成上傳順序就刪掉這段 sort）
-          .sort((a,b)=> a.name.localeCompare(b.name, "en"));
-
-        urls = imgs.map(x => x.download_url);
-
-        if (!urls.length){
-          statusEl.innerHTML = `找不到圖片：請確認有放在 <b>/${FOLDER}/</b> 資料夾。`;
-          return;
-        }
-
-        statusEl.innerHTML = `共 ${urls.length} 張 <small>（點圖放大）</small>`;
-
-        // 建格子
-        gridEl.innerHTML = urls.map((u,i)=>(
-          `<div class="card" data-i="${i}"><img loading="lazy" src="${u}" alt=""></div>`
-        )).join("");
-
-        gridEl.addEventListener("click", (e)=>{
-          const card = e.target.closest(".card");
-          if (!card) return;
-          const i = Number(card.getAttribute("data-i"));
-          openLb(i);
-        });
-
-      }catch(err){
-        statusEl.innerHTML =
-          `載入失敗：${String(err.message || err)}<br><small>常見原因：分支不是 ${BRANCH}、資料夾不是 /${FOLDER}/、或 GitHub API 被限流。</small>`;
-      }
-    }
-
-    load();
-  </script>
+<div class="grid" id="g"></div>
+<div class="lb" id="lb"><button class="close" id="x">×</button><img id="big"></div>
+<script>
+(async()=>{
+const o="worldjournal",r="Events",f="img",ext=/\.(jpe?g|png|webp|gif|bmp|svg)$/i;
+const g=document.getElementById("g"),lb=document.getElementById("lb"),big=document.getElementById("big"),x=document.getElementById("x");
+const repo=await fetch(`https://api.github.com/repos/${o}/${r}`).then(r=>r.json());
+const b=repo.default_branch;
+const items=await fetch(`https://api.github.com/repos/${o}/${r}/contents/${f}?ref=${b}`).then(r=>r.json());
+const urls=items.filter(i=>i.type==="file"&&ext.test(i.name)).map(i=>i.download_url);
+g.innerHTML=urls.map((u,i)=>`<div class="card" data-i="${i}"><img class="thumb" loading="lazy" src="${u}"></div>`).join("");
+g.onclick=e=>{const c=e.target.closest(".card");if(!c)return;big.src=urls[c.dataset.i];lb.classList.add("on");};
+x.onclick=()=>lb.classList.remove("on");
+lb.onclick=e=>e.target===lb&&lb.classList.remove("on");
+})();
+</script>
 </body>
 </html>
