@@ -5,37 +5,58 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Events</title>
 <style>
-:root{--crop:33%;}
 body{margin:0;background:#fff}
-.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:12px}
+.grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:10px;
+  padding:12px;
+}
 @media(max-width:1100px){.grid{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:780px){.grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:480px){.grid{grid-template-columns:1fr}}
+
 .card{overflow:hidden;border-radius:10px;cursor:zoom-in}
 
-/* 關鍵：顯示「上方 2/3」，不置中、不切上面 */
+/* 關鍵：不裁切、不置中，只「縮短高度」 */
 .thumb{
   width:100%;
-  height:75vh;          /* 長度加長 */
-  max-height:720px;
-  min-height:360px;
-  object-fit:cover;
-  object-position:top;  /* 固定從上方顯示 */
-  clip-path:inset(0 0 var(--crop) 0); /* 只裁下方 1/3 */
+  height:45vh;          /* 縮短整體長度，避免列與列大空白 */
+  max-height:420px;
+  min-height:240px;
+  object-fit:cover;     /* 保持填滿 */
+  object-position:top;  /* 以上方為基準 */
   display:block;
 }
 
-/* Lightbox */
-.lb{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.85);z-index:999999}
+/* Lightbox：顯示整張 */
+.lb{
+  position:fixed;
+  inset:0;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  background:rgba(0,0,0,.85);
+  z-index:999999;
+}
 .lb.on{display:flex}
 .lb img{
   max-width:96vw;
   max-height:92vh;
   object-fit:contain;
-  object-position:top;  /* 放大也從上方對齊 */
-  clip-path:inset(0 0 var(--crop) 0);
 }
-.close{position:fixed;top:12px;right:12px;width:40px;height:40px;border:0;border-radius:999px;background:rgba(255,255,255,.2);color:#fff;font-size:22px}
+.close{
+  position:fixed;
+  top:12px;
+  right:12px;
+  width:40px;
+  height:40px;
+  border:0;
+  border-radius:999px;
+  background:rgba(255,255,255,.2);
+  color:#fff;
+  font-size:22px;
+}
 </style>
 </head>
 <body>
@@ -51,9 +72,11 @@ body{margin:0;background:#fff}
 (async()=>{
 const o="worldjournal",r="Events",f="img",ext=/\.(jpe?g|png|webp|gif|bmp|svg)$/i;
 const g=document.getElementById("g"),lb=document.getElementById("lb"),big=document.getElementById("big"),x=document.getElementById("x");
+
 const repo=await fetch(`https://api.github.com/repos/${o}/${r}`).then(r=>r.json());
 const b=repo.default_branch;
 const items=await fetch(`https://api.github.com/repos/${o}/${r}/contents/${f}?ref=${b}`).then(r=>r.json());
+
 const urls=items.filter(i=>i.type==="file"&&ext.test(i.name)).map(i=>i.download_url);
 
 g.innerHTML=urls.map((u,i)=>`
@@ -67,7 +90,6 @@ g.onclick=e=>{
   big.src=urls[c.dataset.i];
   lb.classList.add("on");
 };
-
 x.onclick=()=>lb.classList.remove("on");
 lb.onclick=e=>e.target===lb&&lb.classList.remove("on");
 })();
