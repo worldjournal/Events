@@ -8,38 +8,46 @@
 <style>
 body{margin:0;background:#fff}
 
+/* 照片牆 */
 .grid{
   display:grid;
   grid-template-columns:repeat(4,1fr);
-  gap:16px;
-  padding:16px;
+  gap:12px;
+  padding:12px;
 }
 @media(max-width:1100px){.grid{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:780px){.grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:480px){.grid{grid-template-columns:1fr}}
 
+/* 卡片留白 */
 .card{
   background:#fff;
-  padding:12px;
-  border-radius:10px;
+  padding:8px;
+  border-radius:8px;
   border:1px solid #eee;
   box-sizing:border-box;
   cursor:zoom-in;
 }
 
-/* 關鍵：不固定高度，只給「小一點的上限」 */
+/* 關鍵：牆上固定「3/4 視覺高度」 */
 .frame{
   width:100%;
-  max-height:500max;   /* ← 牆上就是這個高度 */
+  aspect-ratio:3 / 4;   /* ← 就是這一行 */
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
 }
 
+/* 圖片：完整顯示，不裁任何邊 */
 .thumb{
-  width:100%;
-  height:auto;        /* 整張圖等比縮小 */
+  max-width:100%;
+  max-height:100%;
+  width:auto;
+  height:auto;
   display:block;
 }
 
-/* 燈箱 */
+/* 燈箱：整張看 */
 .lb{
   position:fixed;
   inset:0;
@@ -53,7 +61,6 @@ body{margin:0;background:#fff}
 .lb img{
   max-width:96vw;
   max-height:92vh;
-  object-fit:contain;
 }
 .close{
   position:fixed;
@@ -84,24 +91,22 @@ body{margin:0;background:#fff}
   const OWNER="worldjournal", REPO="Events", FOLDER="img";
   const ext=/\.(jpe?g|png|webp|gif|bmp|svg)$/i;
 
-  const g=document.getElementById("g");
-  const lb=document.getElementById("lb");
-  const big=document.getElementById("big");
-  const x=document.getElementById("x");
+  const g=document.getElementById("g"),
+        lb=document.getElementById("lb"),
+        big=document.getElementById("big"),
+        x=document.getElementById("x");
 
   const repo=await fetch(`https://api.github.com/repos/${OWNER}/${REPO}`).then(r=>r.json());
-  const branch=repo.default_branch;
-
   const items=await fetch(
-    `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FOLDER}?ref=${branch}`
+    `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FOLDER}?ref=${repo.default_branch}`
   ).then(r=>r.json());
 
-  const urls=items.filter(i=>i.type==="file" && ext.test(i.name)).map(i=>i.download_url);
+  const urls=items.filter(i=>i.type==="file"&&ext.test(i.name)).map(i=>i.download_url);
 
   g.innerHTML=urls.map((u,i)=>`
     <div class="card" data-i="${i}">
       <div class="frame">
-        <img class="thumb" loading="lazy" src="${u}">
+        <img class="thumb" src="${u}" loading="lazy">
       </div>
     </div>
   `).join("");
@@ -109,12 +114,11 @@ body{margin:0;background:#fff}
   g.onclick=e=>{
     const c=e.target.closest(".card");
     if(!c)return;
-    const i=[...g.children].indexOf(c);
-    big.src=urls[i];
+    big.src=urls[[...g.children].indexOf(c)];
     lb.classList.add("on");
   };
   x.onclick=()=>lb.classList.remove("on");
-  lb.onclick=e=>e.target===lb && lb.classList.remove("on");
+  lb.onclick=e=>e.target===lb&&lb.classList.remove("on");
 })();
 </script>
 
