@@ -7,11 +7,11 @@
 <style>
 body{margin:0;background:#fff}
 
-/* 關鍵：縮短列高度，列與列不留大空白 */
+/* 列與列不要大空白 */
 .grid{
   display:grid;
   grid-template-columns:repeat(4,1fr);
-  gap:8px;              /* 列間距變小 */
+  gap:8px;
   padding:8px;
 }
 @media(max-width:1100px){.grid{grid-template-columns:repeat(3,1fr)}}
@@ -20,22 +20,45 @@ body{margin:0;background:#fff}
 
 .card{overflow:hidden;border-radius:8px;cursor:zoom-in}
 
-/* 只「縮短高度」，不裁切、不置中 */
+/* 關鍵：高度放到 3/4 */
 .thumb{
   width:100%;
-  height:32vh;          /* 再縮短，避免上下大空白 */
-  max-height:320px;
-  min-height:200px;
+  height:75vh;          /* 3/4 畫面高度 */
+  max-height:600px;
+  min-height:360px;
   object-fit:cover;
   object-position:top;
   display:block;
 }
 
 /* Lightbox：整張顯示 */
-.lb{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.85);z-index:999999}
+.lb{
+  position:fixed;
+  inset:0;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  background:rgba(0,0,0,.85);
+  z-index:999999
+}
 .lb.on{display:flex}
-.lb img{max-width:96vw;max-height:92vh;object-fit:contain}
-.close{position:fixed;top:12px;right:12px;width:40px;height:40px;border:0;border-radius:999px;background:rgba(255,255,255,.2);color:#fff;font-size:22px}
+.lb img{
+  max-width:96vw;
+  max-height:92vh;
+  object-fit:contain
+}
+.close{
+  position:fixed;
+  top:12px;
+  right:12px;
+  width:40px;
+  height:40px;
+  border:0;
+  border-radius:999px;
+  background:rgba(255,255,255,.2);
+  color:#fff;
+  font-size:22px
+}
 </style>
 </head>
 <body>
@@ -58,7 +81,12 @@ const items=await fetch(`https://api.github.com/repos/${o}/${r}/contents/${f}?re
 const urls=items.filter(i=>i.type==="file"&&ext.test(i.name)).map(i=>i.download_url);
 
 g.innerHTML=urls.map((u,i)=>`<div class="card" data-i="${i}"><img class="thumb" loading="lazy" src="${u}"></div>`).join("");
-g.onclick=e=>{const c=e.target.closest(".card");if(!c)return;big.src=urls[c.dataset.i];lb.classList.add("on");};
+g.onclick=e=>{
+  const c=e.target.closest(".card");
+  if(!c)return;
+  big.src=urls[c.dataset.i];
+  lb.classList.add("on");
+};
 x.onclick=()=>lb.classList.remove("on");
 lb.onclick=e=>e.target===lb&&lb.classList.remove("on");
 })();
